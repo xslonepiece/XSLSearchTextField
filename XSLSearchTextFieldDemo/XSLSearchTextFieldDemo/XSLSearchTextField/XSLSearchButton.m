@@ -6,17 +6,29 @@
 //  Copyright © 2016年 xsl. All rights reserved.
 //
 
+
+
 #import "XSLSearchButton.h"
+
+
 @interface XSLSearchButton ()
 {
-    CGFloat _width;         //self.frame.size.width
-    CGFloat _height;        //self.frame.size.height
-    CGFloat _lineLength;    //斜线长
-    CGFloat _radiusMin;     //小圆半径
-    CGFloat _radiusMax;     //大圆半径
-    CGFloat _cdx;           //圆半径差
-    CGFloat _rdx;           //右斜线长度差
-    CGFloat _sqrt2;
+    
+    CGFloat _radius;     //小圆半径
+    
+    CGPoint _lbPoint;
+    CGPoint _lePoint;
+    
+    CGPoint _rbPoint;
+    CGPoint _rePoint;
+    CGPoint _rInPosition;
+    CGPoint _rOutPosition;
+    
+    CGPoint _circleCenter;
+    
+    CATransform3D _circleTransformMin;
+    CATransform3D _circleTransformMax;
+    
 }
 
 @property (nonatomic,strong)CAShapeLayer *circleLayer;
@@ -35,41 +47,53 @@
 @implementation XSLSearchButton
 
 - (instancetype)initWithFrame:(CGRect)frame{
-    
     self = [super initWithFrame:CGRectMake(frame.origin.x, frame.origin.y, frame.size.width, frame.size.width)];
     if (self) {
-        [self setupValuesWithFrame:frame];
+        [self caculateWithFrame:frame];
         [self.layer addSublayer:self.circleLayer];
         [self.layer addSublayer:self.rightLineLayer];
         _searching = NO;
         _clearEnable = NO;
-        
     }
     return self;
 }
 
 
-- (void)setupValuesWithFrame:(CGRect)frame{
-    _radiusMin = frame.size.width / 4.0f;
-    _radiusMax = frame.size.width / 3.0f;
-    _width = frame.size.width;
-    _height = _width;
-    _lineLength = _radiusMax;
-    _sqrt2 = sqrt(2);
-    _cdx =  _radiusMin / 2;
+- (void)caculateWithFrame:(CGRect)frame{
+    _radius = frame.size.width / 4.0f;
+    CGFloat radiusMax = frame.size.width / 3.0f;
+    CGFloat width = frame.size.width;
+    CGFloat sqrt2 = sqrt(2);
+    CGFloat cdx = _radius / 2;
+    CGFloat lineLength = radiusMax;
+    _circleCenter = CGPointMake(width / 2 - cdx, width / 2 - cdx);
     
-    CGFloat rightX1 = _width / 2 + _radiusMin / _sqrt2 - _cdx;
-    CGFloat rightX2 = _width / 2 - _lineLength / 2 /_sqrt2;
-    _rdx = rightX1 - rightX2;
+    CGFloat rbx = width / 2 + _radius / sqrt2 - cdx;
+    CGFloat rex = rbx + lineLength / sqrt2;
+    CGFloat inX = (width - lineLength /sqrt2) / 2;
+    _rbPoint = CGPointMake(rbx, rbx);
+    _rePoint = CGPointMake(rex, rex);
+    _rInPosition = CGPointMake(inX - rbx, inX - rbx);
+    _rOutPosition = CGPointZero;
+    
+    CGFloat lbx = width / 2 + lineLength / 2 / sqrt2;
+    CGFloat lex = lbx - lineLength / sqrt2;
+    _lbPoint = CGPointMake(lbx, width - lbx);
+    _lePoint = CGPointMake(lex, width - lex);
+    
+    _circleTransformMin = CATransform3DMakeAffineTransform(CGAffineTransformMake(1, 0, 0, 1, 0, 0));
+    _circleTransformMax = CATransform3DMakeAffineTransform(CGAffineTransformMake(radiusMax / _radius, 0, 0, radiusMax / _radius, 0, 0));
 }
+
 
 #pragma mark lazy load
 - (CAShapeLayer *)circleLayer{
     if (!_circleLayer) {
         _circleLayer = [CAShapeLayer layer];
         CGMutablePathRef path = CGPathCreateMutable();
-        CGPathAddArc(path, nil, _width / 2 - _cdx, _width / 2 - _cdx, _radiusMin, 0, M_PI * 2, YES);
+        CGPathAddArc(path, nil, _circleCenter.x , _circleCenter.y, _radius ,0, M_PI * 2, YES);
         _circleLayer.path = path;
+        CGPathRelease(path);
         _circleLayer.fillColor = [UIColor clearColor].CGColor;
     }
     return _circleLayer;
@@ -79,11 +103,11 @@
     if (!_rightLineLayer) {
         _rightLineLayer = [CAShapeLayer layer];
         CGMutablePathRef path = CGPathCreateMutable();
-        CGFloat beginX = _width / 2 + _radiusMin / _sqrt2 - _cdx;
-        CGFloat endX = beginX + _lineLength / _sqrt2;
-        CGPathMoveToPoint(path, nil, beginX, beginX);
-        CGPathAddLineToPoint(path, nil, endX,endX);
+        CGPathMoveToPoint(path, nil, _rbPoint.x, _rbPoint.y);
+        CGPathAddLineToPoint(path, nil, _rePoint.x, _rePoint.y);
+        _rightLineLayer.anchorPoint = CGPointZero;
         _rightLineLayer.path = path;
+        CGPathRelease(path);
         _rightLineLayer.fillColor = [UIColor clearColor].CGColor;
     }
     return _rightLineLayer;
@@ -93,11 +117,10 @@
     if (!_leftLineLayer) {
         _leftLineLayer = [CAShapeLayer layer];
         CGMutablePathRef path = CGPathCreateMutable();
-        CGFloat beginX = _width / 2 + _lineLength / 2 / _sqrt2;
-        CGFloat endX = beginX - _lineLength / _sqrt2;
-        CGPathMoveToPoint(path, nil, beginX, _width - beginX);
-        CGPathAddLineToPoint(path, nil, endX, _width - endX);
+        CGPathMoveToPoint(path, nil, _lbPoint.x, _lbPoint.y);
+        CGPathAddLineToPoint(path, nil, _lePoint.x, _lePoint.y);
         _leftLineLayer.path = path;
+        CGPathRelease(path);
         _leftLineLayer.fillColor = [UIColor clearColor].CGColor;
     }
     return _leftLineLayer;
@@ -120,10 +143,10 @@
 
 - (void)enableClear{
     [self.layer addSublayer:self.leftLineLayer];
-    self.circleLayer.transform =  CATransform3DMakeAffineTransform(CGAffineTransformMake(_radiusMax / _radiusMin, 0, 0, _radiusMax / _radiusMin, 0, 0));
+    self.circleLayer.transform = _circleTransformMax;
     [self.leftLineLayer addAnimation:[self stokeAnimation] forKey:@"stokeAnimation"];
-    self.rightLineLayer.position = CGPointMake(self.rightLineLayer.position.x - _rdx, self.rightLineLayer.position.y - _rdx);
-    
+    self.rightLineLayer.position = _rInPosition;
+
 }
 
 - (void)showHilightedWithAnimation:(BOOL)animation{
@@ -132,8 +155,8 @@
     if (!animation) {
         return;
     }
-    self.circleLayer.transform =  CATransform3DMakeAffineTransform(CGAffineTransformMake(1, 0, 0, 1, 0, 0));
-    self.rightLineLayer.position = CGPointMake(self.rightLineLayer.position.x + _rdx, self.rightLineLayer.position.y +_rdx);
+    self.circleLayer.transform = _circleTransformMin;
+    self.rightLineLayer.position = _rOutPosition;
 }
 
 #pragma mark - set

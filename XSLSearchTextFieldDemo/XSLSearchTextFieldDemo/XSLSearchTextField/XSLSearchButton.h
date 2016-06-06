@@ -8,8 +8,10 @@
 
 #import <UIKit/UIKit.h>
 
+
 @interface XSLSearchButton : UIButton
 
+//@property (nonatomic,strong)XSLSearchButtonStore *store;
 @property (nonatomic,strong)UIColor *normalColor;
 @property (nonatomic,strong)UIColor *seachingColor;
 
