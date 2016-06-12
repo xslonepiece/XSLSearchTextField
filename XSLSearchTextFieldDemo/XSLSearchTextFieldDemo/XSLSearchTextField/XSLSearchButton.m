@@ -16,13 +16,13 @@
     
     CGFloat _radius;     //小圆半径
     
-    CGPoint _lbPoint;
-    CGPoint _lePoint;
+    CGPoint _lbPoint;   // left line begin point
+    CGPoint _lePoint;   // left line end point
     
-    CGPoint _rbPoint;
-    CGPoint _rePoint;
-    CGPoint _rInPosition;
-    CGPoint _rOutPosition;
+    CGPoint _rbPoint;   // right line begin point
+    CGPoint _rePoint;   // right line end point
+    CGPoint _rInPosition;   // right line in circle position
+    CGPoint _rOutPosition;  // right line out circle position
     
     CGPoint _circleCenter;
     
@@ -200,7 +200,6 @@
         self.circleLayer.strokeColor = _seachingColor.CGColor;
         self.leftLineLayer.strokeColor = _seachingColor.CGColor;
     }
-    
 }
 
 - (void)setNormalColor:(UIColor *)normalColor{
